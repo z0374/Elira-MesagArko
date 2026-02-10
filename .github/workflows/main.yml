@@ -1,0 +1,37 @@
+name: Sync Pages from Public Mirror
+
+on:
+  push:
+    branches:
+      - pages
+
+jobs:
+  sync-back:
+    if: contains(github.event.head_commit.message, 'sync pages')
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_REPO: "https://github.com/${{ github.repository_owner }}/Elira-MesagArko.git"
+    steps:
+      - name: Checkout Private Pages Branch
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MSG_TOKEN }}
+          ref: pages
+
+      - name: Pull from Public Mirror
+        run: |
+          # Clona a branch pages do repo público (temporário)
+          git clone --branch pages --single-branch $PUBLIC_REPO temp_public
+          
+          # Garante a estrutura public/pages
+          mkdir -p public/pages
+          
+          # Sincroniza apenas o conteúdo da pasta 'pages' do público para 'public/pages' do privado
+          # Ignora o .git e .github do público
+          rsync -av --exclude='.git' --exclude='.github' temp_public/pages/ public/pages/
+          
+          git config user.name "eliraMesagArko"
+          git config user.email "eliramesagarko@users.noreply.github.com"
+          git add public/pages/
+          git commit -m "Elira-Mesag Arko: new messages" || echo "No changes"
+          git push origin pages
